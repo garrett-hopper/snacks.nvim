@@ -107,7 +107,7 @@ RECOMMENDED SETUP                    *snacks-profiler-usage-recommended-setup*
           Snacks.toggle.profiler_highlights():map("<leader>ph")
         end,
         keys = {
-          { "<leader>ps", function() Snacks.profiler.scratch() end, desc = "Profiler Scratch buffer" },
+          { "<leader>ps", function() Snacks.profiler.scratch() end, desc = "Profiler Scratch Buffer" },
         }
       },
       -- optional lualine component to show captured events
