@@ -6,7 +6,7 @@
 ---@field opts snacks.win.Config
 ---@field augroup? number
 ---@field backdrop? snacks.win
----@field keys snacks.win.Keys[]
+---@field keys snacks.win.Key[]
 ---@field events (snacks.win.Event|{event:string|string[]})[]
 ---@field meta table<string, any>
 ---@field closed? boolean
@@ -22,10 +22,17 @@ M.meta = {
   desc = "Create and manage floating windows or splits",
 }
 
----@class snacks.win.Keys: vim.api.keyset.keymap
----@field [1]? string
----@field [2]? string|string[]|fun(self: snacks.win): string?
+---@alias snacks.win.KeySpec string|string[]|fun(self: snacks.win): string?
+
+---@class snacks.win.BaseKey: vim.api.keyset.keymap
 ---@field mode? string|string[]
+
+---@class snacks.win.Key: snacks.win.BaseKey
+---@field [1]? string
+---@field [2]? snacks.win.KeySpec
+
+---@class snacks.win.KeyBinding: snacks.win.BaseKey
+---@field [1]? snacks.win.KeySpec
 
 ---@class snacks.win.Event: vim.api.keyset.create_autocmd
 ---@field buf? true
@@ -75,7 +82,7 @@ M.meta = {
 ---@field w? table<string, any> window local variables
 ---@field ft? string filetype to use for treesitter/syntax highlighting. Won't override existing filetype
 ---@field scratch_ft? string filetype to use for scratch buffers
----@field keys? table<string, false|string|fun(self: snacks.win)|snacks.win.Keys> Key mappings
+---@field keys? table<string, false|string|fun(self: snacks.win)|snacks.win.KeyBinding> Key mappings
 ---@field on_buf? fun(self: snacks.win) Callback after opening the buffer
 ---@field on_win? fun(self: snacks.win) Callback after opening the window
 ---@field on_close? fun(self: snacks.win) Callback after closing the window
@@ -260,20 +267,23 @@ function M.new(opts)
 
   self.keys = {}
   self.events = {}
-  local done = {} ---@type table<string, snacks.win.Keys>
-  for key, spec in pairs(opts.keys) do
+  local done = {} ---@type table<string, snacks.win.Key>
+  for binding, spec in pairs(opts.keys) do
     if spec then
+      ---@type snacks.win.Key
+      local key
       if type(spec) == "string" then
-        spec = { key, spec, desc = spec }
+        key = { binding, spec, desc = spec }
       elseif type(spec) == "function" then
-        spec = { key, spec }
+        key = { binding, spec }
       elseif type(spec) == "table" and spec[1] and not spec[2] then
-        spec = vim.deepcopy(spec) -- deepcopy just in case
-        spec[1], spec[2] = key, spec[1]
+        --- @diagnostic disable-next-line: cast-type-mismatch allow casting as Key despite mismatched index types
+        --- @cast spec snacks.win.Key
+        key = vim.deepcopy(spec) -- deepcopy just in case
+        key[1], key[2] = binding, spec[1] -- replace index keys to match Key type
       end
-      ---@cast spec snacks.win.Keys
-      local lhs = Snacks.util.normkey(spec[1] or "")
-      local mode = type(spec.mode) == "table" and spec.mode or { spec.mode or "n" }
+      local lhs = Snacks.util.normkey(key[1] or "")
+      local mode = type(key.mode) == "table" and key.mode or { key.mode or "n" }
       ---@cast mode string[]
       mode = #mode == 0 and { "n" } or mode
       for _, m in ipairs(mode) do
@@ -284,13 +294,13 @@ function M.new(opts)
               lhs,
               m,
               vim.inspect(done[k]),
-              vim.inspect(spec)
+              vim.inspect(key)
             )
           )
         end
-        done[k] = spec
+        done[k] = key
       end
-      table.insert(self.keys, spec)
+      table.insert(self.keys, key)
     end
   end
 
@@ -935,7 +945,7 @@ function M:map()
       end
     end
     spec.desc = spec.desc or opts.desc
-    ---@cast spec snacks.win.Keys
+    ---@cast spec snacks.win.Key
     vim.keymap.set(spec.mode or "n", spec[1], rhs, opts)
   end
 end
