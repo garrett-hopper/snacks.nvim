@@ -1046,6 +1046,7 @@ Neovim commands
 ---@field follow? boolean follow symlinks
 ---@field exclude? string[] exclude patterns
 ---@field args? string[] additional arguments
+---@field default_args? boolean Use default arguments (default: true)
 ---@field ft? string|string[] file extension(s)
 ---@field rtp? boolean search in runtimepath
 {
@@ -1056,6 +1057,7 @@ Neovim commands
   ignored = false,
   follow = false,
   supports_live = true,
+  default_args = true,
 }
 ```
 

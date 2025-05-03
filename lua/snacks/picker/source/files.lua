@@ -57,6 +57,7 @@ local function get_cmd(opts, filter)
   if not cmd or not args then
     return
   end
+  if not opts.default_args then args = {} end
   local is_fd, is_fd_rg, is_find, is_rg = cmd == "fd" or cmd == "fdfind", cmd ~= "find", cmd == "find", cmd == "rg"
 
   -- exclude
