@@ -276,11 +276,13 @@ function M.new(opts)
         key = { binding, spec, desc = spec }
       elseif type(spec) == "function" then
         key = { binding, spec }
-      elseif type(spec) == "table" and spec[1] and not spec[2] then
+      elseif type(spec) == "table" and spec[1] then
         --- @diagnostic disable-next-line: cast-type-mismatch allow casting as Key despite mismatched index types
         --- @cast spec snacks.win.Key
         key = vim.deepcopy(spec) -- deepcopy just in case
-        key[1], key[2] = binding, spec[1] -- replace index keys to match Key type
+        if not spec[2] then
+          key[1], key[2] = binding, spec[1] -- replace index keys to match Key type
+        end
       end
       local lhs = Snacks.util.normkey(key[1] or "")
       local mode = type(key.mode) == "table" and key.mode or { key.mode or "n" }
